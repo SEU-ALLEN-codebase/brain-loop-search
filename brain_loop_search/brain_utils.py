@@ -21,7 +21,7 @@ import numpy as np
 from importlib_resources import files, as_file
 from .packing import Ontology
 from brainrender import Scene, settings
-from myterial import grey, white
+from myterial import grey, white, grey_dark
 from vedo.shapes import Spline, Arrow, Tube, Line
 
 import colorsys
@@ -127,10 +127,20 @@ def draw_brain_graph(graph: nx.DiGraph, path: str | os.PathLike, thr: float = 0,
 
     regions = list(graph.nodes)
     regions = ccfv3.loc[regions, 'acronym']
-    scene.add_brain_region(*list(regions), alpha=.02, hemisphere='left', silhouette=False)
+    scene.add_brain_region(*list(regions), alpha=.02, hemisphere='left', silhouette=True)
     e = graph.edges(data=True)
     data = [d['weight'] for u, v, d in e if u != v]
     vmax, vmin = max(data), min(data)
+
+    # change silhouette
+    for i in scene.get_actors(br_class="brain region"):
+        i._silhouette_kwargs['lw'] = 1
+        i._silhouette_kwargs['color'] = grey_dark
+
+    rt = scene.get_actors(br_class="brain region", name="root")[0]
+    rt._silhouette_kwargs['lw'] = 1
+    rt._silhouette_kwargs['color'] = grey
+
     for u, v, d in e:
         if u == v or d['weight'] < thr:
             continue
@@ -140,7 +150,6 @@ def draw_brain_graph(graph: nx.DiGraph, path: str | os.PathLike, thr: float = 0,
         actors = scene.get_actors(br_class="brain region", name=list(regions.loc[[u, v]]))
         z_mean = [np.mean(m.points()[:, 2]) for m in actors]
         centers = [np.mean(m.points()[m.points()[:, 2] - z < 10], axis=0) * (1, 1, -1) for m, z in zip(actors, z_mean)]
-        print(centers)
         spl = Line(*centers, res=3)
         pts = spl.points()
         c = map_color(d['weight'], cmap, vmin, vmax)
@@ -202,6 +211,12 @@ def draw_single_loop(loop: list[list], path: str | os.PathLike, render_ops: dict
 
     scene = Scene(atlas_name='allen_mouse_100um')
     count = 0
+
+    # the root brain (usually this is just a background and not used to plot loops)
+    rt = scene.get_actors(br_class="brain region", name="root")[0]
+    rt._silhouette_kwargs['lw'] = 1
+    rt._silhouette_kwargs['color'] = grey
+
     for run in loop:    # each run in a loop is one sssp, will be marked by different colors
         # map to ccf acronym
         run = list(ccfv3.loc[run, 'acronym'])
@@ -212,11 +227,6 @@ def draw_single_loop(loop: list[list], path: str | os.PathLike, render_ops: dict
         # axis regions will add silhouette, and bigger alpha
         scene.add_brain_region(run[0], run[-1], alpha=.5, hemisphere='left', silhouette=False)
         scene.add_silhouette(*scene.get_actors(br_class="brain region", name=[run[0], run[-1]]), lw=2)
-
-        # the root brain (usually this is just a background and not used to plot loops)
-        rt = scene.get_actors(br_class="brain region", name="root")[0]
-        rt._silhouette_kwargs['lw'] = 1
-        rt._silhouette_kwargs['color'] = grey
 
         # random hue
         hue = random.random()
