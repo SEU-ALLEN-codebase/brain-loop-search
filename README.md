@@ -117,7 +117,7 @@ loop = [[950, 974, 417], [417, 993], [993, 234, 289, 950]]
 bls.brain_utils.draw_single_loop(loop, 'test.png')
 ```
 Figure:
-![](test/test.png)
+![](https://raw.githubusercontent.com/SEU-ALLEN-codebase/brain-loop-search/main/test/test.png)
 
 Visualize a graph
 
@@ -143,11 +143,11 @@ bls.brain_utils.draw_brain_graph(g.graph, 'test2.png', thr=3)
 ```
 
 Figure:
-![](test/test2.png)
+![](https://raw.githubusercontent.com/SEU-ALLEN-codebase/brain-loop-search/main/test/test2.png)
 
 
 ## Useful Links
 
-Github project: https://github.com/SEU-ALLEN-codebase/brain-loop-seach
+Github project: https://github.com/SEU-ALLEN-codebase/brain-loop-search
 
 Documentation: https://SEU-ALLEN-codebase.github.io/brain-loop-search
