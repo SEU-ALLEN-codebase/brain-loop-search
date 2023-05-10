@@ -27,7 +27,7 @@ jobs:
       # ADJUST THIS: build your documentation into docs/.
       # We use a custom build script for pdoc itself, ideally you just run `pdoc -o docs/ ...` here.
 #      - run: git clone https://github.com/oddlama/pdoc-bulma-theme
-      - run: pdoc brain_loop -o docs
+      - run: pdoc brain_loop_search -o docs
 
       - uses: actions/upload-pages-artifact@v1
         with:
