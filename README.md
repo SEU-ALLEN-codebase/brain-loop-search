@@ -1,11 +1,11 @@
-# Loop Search
+# Brain Loop Search
 Tools for screening significant loop structures in a graph, typically a
 brain structure graph with physiological or anatomical edge data.
 
 ## Installation
 
 ```shell
-$ pip install brain-loop-screen
+$ pip install brain-loop-search
 ```
 
 ## Usage
