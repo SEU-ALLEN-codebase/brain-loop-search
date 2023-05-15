@@ -21,6 +21,7 @@ This is a meta class that doesn't implement any function, so any subclass this w
     I would recommend using pandas for tree representation for its speed and also because you can save some useful info
     as appended columns.
     """
+
     def __init__(self):
         """
         Here, some preprocessing can be done make other functions easier and faster to operate. Also, you need to
@@ -109,7 +110,7 @@ class VertexPacker:
         """
         return self._vert.copy()
 
-    def filter_by_level(self, fro: int = None, to: int = None):
+    def filter_by_level(self, fro: int = None, to: int = None, invert=False):
         """
         Only retain the vertices within the level range, c style.
 
@@ -117,15 +118,19 @@ class VertexPacker:
 
         :param fro: the starting level, inclusive, default as None, meaning no limit.
         :param to: the ending level, exclusive, default as None, meaning no limit.
+        :param invert: whether retain the otherwise non-descendents
         """
         levels = self._ont.levels_of(self._vert)
         if fro is not None:
             levels = levels[levels >= fro]
         if to is not None:
             levels = levels[levels < to]
-        self._vert = levels.index
+        if invert:
+            self._vert = self._vert[~self._vert.isin(levels.index)]
+        else:
+            self._vert = levels.index
 
-    def filter_by_depth(self, fro: int = None, to: int = None):
+    def filter_by_depth(self, fro: int = None, to: int = None, invert=False):
         """
         Only retain the vertices within the depth range, c style.
 
@@ -133,13 +138,17 @@ class VertexPacker:
 
         :param fro: the starting depth, inclusive, default as None, meaning no limit.
         :param to: the ending depth, exclusive, default as None, meaning no limit.
+        :param invert: whether retain the otherwise non-descendents
         """
         depths = self._ont.depths_of(self._vert)
         if fro is not None:
             depths = depths[depths >= fro]
         if to is not None:
             depths = depths[depths < to]
-        self._vert = depths.index
+        if invert:
+            self._vert = self._vert[~self._vert.isin(depths.index)]
+        else:
+            self._vert = depths.index
 
     def filter_super(self):
         """
@@ -156,27 +165,34 @@ class VertexPacker:
         tf = [vert.isdisjoint(i) for i in self._ont.ancestors_of(self._vert)]
         self._vert = self._vert[tf]
 
-    def filter_by_immediate_child_of(self, parents: typing.Iterable):
+    def filter_by_immediate_child_of(self, parents: typing.Iterable, invert=False):
         """
         Only retain the direct children under some vertices, which is convenient when you have a big super node with
         many branches below.
 
         :param parents: the direct parent vertices.
+        :param invert: whether retain the otherwise non-descendents
         """
         un = set.union(*map(set, self._ont.immediate_children_of(parents)))
-        self._vert = self._vert[self._vert.isin(un)]
+        if invert:
+            self._vert = self._vert[~self._vert.isin(un)]
+        else:
+            self._vert = self._vert[self._vert.isin(un)]
 
-    def filter_by_descendants_of(self, parents: typing.Iterable, include_parents=False):
+    def filter_by_descendants_of(self, parents: typing.Iterable, include_parents=False, invert=False):
         """
         Only retain the descendents of some vertices.
 
         :param parents: the ancestors.
         :param include_parents: whether to allow the parents to exist in the result, default as not.
+        :param invert: whether retain the otherwise non-descendents
         """
         parents = set(parents)
         tf = map(lambda p: not parents.isdisjoint(p), self._ont.ancestors_of(self._vert))
         if include_parents:
             tf = [*tf] | self._vert.isin(parents)
+        if invert:
+            tf = [not i for i in tf]
         self._vert = self._vert[tf]
 
     def merge_by_level(self, thr):
@@ -224,6 +240,7 @@ class GraphPacker:
     Sometimes, you want to look into their coarser regions' relations rather than the finer ones. This is where
     rearrangement needs to be done.
     """
+
     def __init__(self, adj_mat: pd.DataFrame, ontology: Ontology):
         """
         :param adj_mat: the adjacent matrix in pandas dataframe, the projection is from rows to columns.
