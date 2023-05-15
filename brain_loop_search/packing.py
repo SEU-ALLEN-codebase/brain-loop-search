@@ -96,8 +96,7 @@ class VertexPacker:
         :param ontology: a derivation of the abstract class `Ontology`.
         """
         vertices = pd.Series(vertices)
-        assert ontology.check_include(vertices), f"vertices contain unrecognizable ID " \
-                                                 f"by the ontology {ontology.__name__}"
+        assert ontology.check_include(vertices), f"vertices contain unrecognizable ID "
         self._vert = vertices
         self._ont = ontology
 
@@ -231,10 +230,8 @@ class GraphPacker:
         :param ontology: a derivation of the abstract class `Ontology`.
         """
         # check adjacent matrix
-        assert ontology.check_include(adj_mat.index), f"rows contain unrecognizable ID " \
-                                                      f"by the ontology {ontology.__name__}"
-        assert ontology.check_include(adj_mat.columns), f"columns contain unrecognizable ID " \
-                                                        f"by the ontolgoy {ontology.__name__}"
+        assert ontology.check_include(adj_mat.index), f"rows contain unrecognizable ID "
+        assert ontology.check_include(adj_mat.columns), f"columns contain unrecognizable ID "
         self._init_mat = adj_mat
         self._ont = ontology
 
