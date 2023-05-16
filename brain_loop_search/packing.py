@@ -247,9 +247,11 @@ class GraphPacker:
         :param ontology: a derivation of the abstract class `Ontology`.
         """
         # check adjacent matrix
-        assert ontology.check_include(adj_mat.index), f"rows contain unrecognizable ID "
-        assert ontology.check_include(adj_mat.columns), f"columns contain unrecognizable ID "
-        self._init_mat = adj_mat
+        assert ontology.check_include(adj_mat.index), f"rows contain unrecognizable ID"
+        assert ontology.check_include(adj_mat.columns), f"columns contain unrecognizable ID"
+        self._mat = adj_mat.to_numpy()
+        self._rows = adj_mat.index
+        self._cols = adj_mat.columns
         self._ont = ontology
 
     def pack(self, new_rows: typing.Iterable, new_cols: typing.Iterable, def_val: float = -1,
@@ -282,7 +284,7 @@ class GraphPacker:
 
         def vertex_map_gen(all_vert, new_vert):
             # prefilter
-            packer = VertexPacker(all_vert, self._ont)
+            packer = VertexPacker(all_vert.unique(), self._ont)
             packer.filter_by_descendants_of(new_vert, include_parents=True)
             needed_vert = packer.stash()
             # map
@@ -295,18 +297,22 @@ class GraphPacker:
                     packer = VertexPacker(nodes, self._ont)
                     packer.filter_sub()
                     nodes = packer.stash()
-                map.append(nodes)
+                map.append(np.where(all_vert.isin(nodes)))
             return map
 
-        row_map = vertex_map_gen(self._init_mat.index, new_rows)
-        col_map = vertex_map_gen(self._init_mat.columns, new_cols)
+        row_map = vertex_map_gen(self._rows, new_rows)
+        col_map = vertex_map_gen(self._cols, new_cols)
 
         # calculate the edges in the new matrix
-        for i, (row, fro_nodes) in enumerate(zip(new_rows, row_map)):
-            if len(fro_nodes) == 0:
+        for i, (row, fro_ind) in enumerate(zip(new_rows, row_map)):
+            if len(fro_ind) == 0:
                 continue
-            for j, (col, to_nodes) in enumerate(zip(new_cols, col_map)):
-                if row == col or len(to_nodes) == 0:
+            for j, (col, to_ind) in enumerate(zip(new_cols, col_map)):
+                if row == col or len(to_ind) == 0:
                     continue
-                new_mat[i, j] = aggr_func(self._init_mat.loc[fro_nodes, to_nodes].to_numpy())
+                dat = self._mat[fro_ind][:,to_ind].reshape(-1)
+                dat = dat[dat != def_val]
+                if len(dat) == 0:
+                    continue
+                new_mat[i, j] = aggr_func(dat)
         return pd.DataFrame(new_mat, index=new_rows, columns=new_cols)
