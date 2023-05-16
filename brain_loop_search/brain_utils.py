@@ -85,6 +85,7 @@ def draw_brain_graph(graph: nx.DiGraph, path: str | os.PathLike, thr: float = 0,
     Plot a directed graph among ccfv3 brain structures.
 
     Note: It will reset some of the brainrender global settings.
+    Do not use this in interactive mode like jupyter, where some render options may not work.
 
     Using brainrender can cause some problem, as it
     will attempt downloading the brain atlas from the internet and ping google.com beforehand.
