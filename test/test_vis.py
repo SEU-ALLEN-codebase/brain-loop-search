@@ -4,6 +4,7 @@ from brain_loop_search.search import MaxFlowLoopSearch
 import pandas as pd
 import numpy as np
 
+
 class DrawTest(unittest.TestCase):
     def test_loop(self):
         draw_single_loop([[950, 974, 417], [417, 993], [993, 234, 289, 950]], 'test.png')

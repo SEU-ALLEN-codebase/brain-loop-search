@@ -147,9 +147,14 @@ def draw_brain_graph(graph: nx.DiGraph, path: str | os.PathLike, thr: float = 0,
         # tube
         # get a proper center of each region (this is difficult, for brain structures can be very twisted)
         # then connect them to make a spline for a tube, which will envelop arrows
-        actors = scene.get_actors(br_class="brain region", name=list(regions.loc[[u, v]]))
-        z_mean = [np.mean(m.points()[:, 2]) for m in actors]
-        centers = [np.mean(m.points()[m.points()[:, 2] - z < 10], axis=0) * (1, 1, -1) for m, z in zip(actors, z_mean)]
+        run = list(regions.loc[[u, v]])
+        actors = scene.get_actors(br_class="brain region", name=run)
+        sorted_actors = [None] * len(actors)
+        run_map = dict(zip(run, range(len(run))))
+        for a in actors:
+            sorted_actors[run_map[a.name]] = a
+        z_mean = [np.mean(m.points()[:, 2]) for m in sorted_actors]
+        centers = [np.mean(m.points()[m.points()[:, 2] - z < 10], axis=0) * (1, 1, -1) for m, z in zip(sorted_actors, z_mean)]
         spl = Line(*centers, res=3)
         pts = spl.points()
         c = map_color(d['weight'], cmap, vmin, vmax)
@@ -168,11 +173,13 @@ def draw_brain_graph(graph: nx.DiGraph, path: str | os.PathLike, thr: float = 0,
     scene.screenshot(str(path))
     scene.close()
 
+
 def draw_single_loop(loop: list[list], path: str | os.PathLike, render_ops: dict = None):
     """
     Plot one loop in the ccfv3 atlas using brainrender.
 
     Note: It will reset some of the brainrender global settings.
+    Do not use this in interactive mode like jupyter, where some render options may not work.
 
     Using brainrender can cause some problem, as it
     will attempt downloading the brain atlas from the internet and ping google.com beforehand.
@@ -210,12 +217,21 @@ def draw_single_loop(loop: list[list], path: str | os.PathLike, render_ops: dict
     settings.BACKGROUND_COLOR = white
 
     scene = Scene(atlas_name='allen_mouse_100um')
-    count = 0
 
     # the root brain (usually this is just a background and not used to plot loops)
     rt = scene.get_actors(br_class="brain region", name="root")[0]
     rt._silhouette_kwargs['lw'] = 1
     rt._silhouette_kwargs['color'] = grey
+
+    text_map = {}
+    count = 0
+    for run in loop:
+        run = list(ccfv3.loc[run, 'acronym'])
+        for i in run[:-1]:
+            if i not in text_map:
+                text_map[i] = []
+            count += 1
+            text_map[i].append(str(count))
 
     for run in loop:    # each run in a loop is one sssp, will be marked by different colors
         # map to ccf acronym
@@ -235,8 +251,12 @@ def draw_single_loop(loop: list[list], path: str | os.PathLike, render_ops: dict
         # get a proper center of each region (this is difficult, for brain structures can be very twisted)
         # then connect them to make a spline for a tube, which will envelop arrows
         actors = scene.get_actors(br_class="brain region", name=run)
-        z_mean = [np.mean(m.points()[:, 2]) for m in actors]
-        centers = [np.mean(m.points()[m.points()[:, 2] - z < 10], axis=0) * (1, 1, -1) for m, z in zip(actors, z_mean)]
+        sorted_actors = [None] * len(actors)
+        run_map = dict(zip(run, range(len(run))))
+        for a in actors:
+            sorted_actors[run_map[a.name]] = a
+        z_mean = [np.mean(m.points()[:, 2]) for m in sorted_actors]
+        centers = [np.mean(m.points()[m.points()[:, 2] - z < 10], axis=0) * (1, 1, -1) for m, z in zip(sorted_actors, z_mean)]
         if len(centers) < 3:
             spl = Line(*centers, res=20)
         else:
@@ -250,8 +270,9 @@ def draw_single_loop(loop: list[list], path: str | os.PathLike, render_ops: dict
 
         # text
         for i in range(len(run) - 1):
-            count += 1
-            actors[i].caption(f'{count + 1}. {run[i]}', centers[i] * (1, 1, -1), (.04, .04))
+            if run[i] in text_map:
+                sorted_actors[i].caption(f'{"/".join(text_map.pop(run[i]))}. {run[i]}',
+                                         centers[i] * (1, 1, -1), (.04, .04))
 
     scene.render(**render_ops)
     scene.screenshot(str(path))
