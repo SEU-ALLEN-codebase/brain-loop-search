@@ -39,8 +39,8 @@ import networkx as nx
 import pandas as pd
 import numpy as np
 import itertools
-from copy import deepcopy
 from collections import OrderedDict
+from tqdm import tqdm
 
 
 class GraphMaintainer:
@@ -194,6 +194,16 @@ class ShortestPathLoopSearch(GraphMaintainer):
     The shortest path algorithm uses the 'weight' attribute in the networkx graph.
     """
 
+    def __init__(self):
+        super(ShortestPathLoopSearch).__init__()
+        self.sssp = None
+
+    def init(self):
+        # bellman ford
+        self.sssp = {}
+        for k, v in tqdm(nx.all_pairs_bellman_ford_path(self.graph), total=self.graph.number_of_nodes()):
+            self.sssp[k] = v
+
     def chain_screen(self, n_axis=2, top: int = None, must_include: typing.Iterable = None, allow_knots=False,
                      axis_pool: typing.Iterable = None, axis_must_include: typing.Iterable = None, priority=np.sum):
         """
@@ -246,13 +256,13 @@ class ShortestPathLoopSearch(GraphMaintainer):
             if axis_must_include is not None:
                 assert axis_must_include.issubset(axis_pool), "must included axis should be subset of axis pool"
 
-        # bellman ford
-        sssp = dict(nx.all_pairs_bellman_ford_path(self.graph))
+        if self.sssp is None:
+            self.init()
 
         # do an edge sorting beforehand, ascending
         # vertices not in axis pool (if not None) will be omitted
         connection = []
-        for k1, v1 in sssp.items():
+        for k1, v1 in self.sssp.items():
             if axis_pool is not None and k1 not in axis_pool:
                 continue
             for k2, v2 in v1.items():
@@ -271,7 +281,7 @@ class ShortestPathLoopSearch(GraphMaintainer):
         for i, (k1, k2, w) in enumerate(connection):
             if k1 not in sorted_sssp:
                 sorted_sssp[k1] = OrderedDict()
-            sorted_sssp[k1][k2] = (w, sssp[k1][k2])
+            sorted_sssp[k1][k2] = (w, self.sssp[k1][k2])
 
         max_iter = [0 if top is None else top]
         loops = {}
@@ -336,7 +346,7 @@ class ShortestPathLoopSearch(GraphMaintainer):
                     break
                 gen = stk[-1].send(gen)
 
-        return loops, deepcopy(sssp)
+        return loops
 
     def pair_complement(self, axis_pool: typing.Iterable = None):
         """
@@ -353,11 +363,12 @@ class ShortestPathLoopSearch(GraphMaintainer):
         """
         if axis_pool is not None:
             axis_pool = set(axis_pool)
-        sssp = dict(nx.all_pairs_bellman_ford_path(self.graph))
+        if self.sssp is None:
+            self.init()
         out = {}
         for fro, to in self.graph.edges:
             if axis_pool is not None and (fro not in axis_pool or to not in axis_pool) or to == fro:
                 continue
-            if to in sssp and fro in sssp[to]:
-                out[(fro, to)] = sssp[to][fro]
+            if to in self.sssp and fro in self.sssp[to]:
+                out[(fro, to)] = self.sssp[to][fro]
         return out
