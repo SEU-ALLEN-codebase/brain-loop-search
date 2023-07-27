@@ -40,7 +40,8 @@ class TestLoopSearchGraph(unittest.TestCase):
     def test_find_loop_sssp(self):
         g = ShortestPathLoopSearch()
         g.add_subgraph(self.edges)
-        loops, sssp = g.chain_screen(n_axis=2)
+        g.init()
+        loops = g.chain_screen(n_axis=2)
         self.assertCountEqual(list(loops.keys()), [("a", "b"), ("a", "c"), ("b", "d"), ("c", "d"), ("b", "c")])
         self.assertCountEqual(["".join(s) for s in loops[("a", "b")]['loop']], ["ab", "ba"])
         self.assertCountEqual(["".join(s) for s in loops[("a", "c")]['loop']], ["ac", 'ca'])

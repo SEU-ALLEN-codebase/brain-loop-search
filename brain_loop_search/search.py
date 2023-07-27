@@ -195,7 +195,7 @@ class ShortestPathLoopSearch(GraphMaintainer):
     """
 
     def __init__(self):
-        super(ShortestPathLoopSearch).__init__()
+        super().__init__()
         self.sssp = None
 
     def init(self):
